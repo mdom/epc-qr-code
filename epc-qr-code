@@ -1,0 +1,82 @@
+#!/bin/sh
+#
+# Author: Mario Domgörgen
+# License: MIT
+
+# Generate a EPC QR Code
+# Spec at https://de.wikipedia.org/wiki/EPC-QR-Code
+
+# Check if the number of arguments is correct
+# If not, print usage and exit
+# $1: Name of the recipient
+# $2: IBAN
+# $3: Amount with a dot as decimal separator
+# $4: Text
+#
+
+usage() {
+    printf "%s\n" "Usage: ${0##*/} [--bic=BIC] <Name of the recipient> <IBAN> <Amount> <Text>"
+}
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        --bic)
+            BIC="$2"
+            shift 2
+            ;;
+        --bic=*)
+            BIC=${1#*=}
+            shift
+            ;;
+        --help|-h)
+            usage
+            exit 0
+            ;;
+        --?*)
+            printf "%s\n" "Unknown option: $1" >&2
+            usage >&2
+            exit 1
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+if [ "$#" -ne 4 ]; then
+    usage >&2
+    exit 1
+fi
+
+NAME=$1
+IBAN=$2
+AMOUNT=$3
+TEXT=$4
+
+# Remove all whitespaces from the IBAN
+
+IBAN="$(echo "$IBAN" | tr -d '[:space:]')"
+
+# Replace the comma with a dot
+
+AMOUNT="$(echo "$AMOUNT" | tr , .)"
+
+# Generate the QR code
+
+qrencode  -r /dev/stdin -t ANSIUTF8i <<EOF
+BCD
+002
+2
+SCT
+$BIC
+$NAME
+$IBAN
+EUR$AMOUNT
+
+
+$TEXT
+EOF
